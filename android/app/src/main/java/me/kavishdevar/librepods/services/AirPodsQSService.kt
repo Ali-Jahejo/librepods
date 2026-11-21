@@ -196,7 +196,7 @@ class AirPodsQSService : TileService() {
             decorView.setViewTreeViewModelStoreOwner(viewModelStoreOwner)
 
             val composeView = ComposeView(this).apply {
-                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromContainer)
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                 setContent {
                     AirPodsQuickSettingsSheet(
                         service = ServiceManager.getService(),
