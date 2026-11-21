@@ -21,7 +21,7 @@
 package me.kavishdevar.librepods.services
 
 import android.annotation.SuppressLint
-import android.app.PendingIntent
+import android.app.Dialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -32,13 +32,24 @@ import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.util.Log
+import android.view.WindowManager
+import androidx.activity.ComponentDialog
+import androidx.activity.ViewTreeOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
-import me.kavishdevar.librepods.QuickSettingsDialogActivity
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.core.view.WindowCompat
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.ViewTreeLifecycleOwner
+import androidx.lifecycle.ViewTreeViewModelStoreOwner
+import androidx.savedstate.ViewTreeSavedStateRegistryOwner
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.bluetooth.AACPManager
 import me.kavishdevar.librepods.bluetooth.BluetoothConnectionManager
 import me.kavishdevar.librepods.data.AirPodsNotifications
 import me.kavishdevar.librepods.data.NoiseControlMode
+import me.kavishdevar.librepods.presentation.components.AirPodsQuickSettingsSheet
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -47,6 +58,7 @@ class AirPodsQSService : TileService() {
     private lateinit var sharedPreferences: SharedPreferences
     private var currentAncMode: Int = NoiseControlMode.OFF.ordinal + 1
     private var isAirPodsConnected: Boolean = false
+    private var activeDialog: Dialog? = null
 
     private val ancStatusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -147,31 +159,91 @@ class AirPodsQSService : TileService() {
     override fun onClick() {
         super.onClick()
         Log.d("AirPodsQSService", "onClick - Current state: $isAirPodsConnected, Current mode: $currentAncMode")
-        launchDialogActivity()
+        showQuickSettingsDialog()
     }
 
-    private fun launchDialogActivity() {
-        try {
-            val intent = Intent(this, QuickSettingsDialogActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                val pendingIntent = PendingIntent.getActivity(
-                    this,
-                    0,
-                    intent,
-                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-                )
-                startActivityAndCollapse(pendingIntent)
-            } else {
-                @Suppress("DEPRECATION")
-                @SuppressLint("StartActivityAndCollapseDeprecated")
-                startActivityAndCollapse(intent)
-            }
-            Log.d("AirPodsQSService", "Called startActivityAndCollapse for QuickSettingsDialogActivity")
-        } catch (e: Exception) {
-            Log.e("AirPodsQSService", "Error launching QuickSettingsDialogActivity: $e")
+    private fun showQuickSettingsDialog() {
+        if (activeDialog?.isShowing == true) {
+            Log.d("AirPodsQSService", "Dialog already active, ignoring click")
+            return
         }
+
+        try {
+            val dialog = ComponentDialog(this, R.style.Theme_AirPodsQSDialog)
+            activeDialog = dialog
+
+            val window = dialog.window
+            if (window != null) {
+                WindowCompat.setDecorFitsSystemWindows(window, false)
+                window.setLayout(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.MATCH_PARENT
+                )
+                window.setBackgroundDrawableResource(android.R.color.transparent)
+                window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+                window.decorView.setPadding(0, 0, 0, 0)
+            }
+
+            val decorView = dialog.window?.decorView ?: return
+            ViewTreeLifecycleOwner.set(decorView, dialog)
+            ViewTreeSavedStateRegistryOwner.set(decorView, dialog)
+            ViewTreeOnBackPressedDispatcherOwner.set(decorView, dialog)
+
+            val viewModelStore = ViewModelStore()
+            val viewModelStoreOwner = ViewModelStoreOwner { viewModelStore }
+            ViewTreeViewModelStoreOwner.set(decorView, viewModelStoreOwner)
+
+            val composeView = ComposeView(this).apply {
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromContainer)
+                setContent {
+                    AirPodsQuickSettingsSheet(
+                        service = ServiceManager.getService(),
+                        onDismiss = {
+                            try {
+                                dialog.dismiss()
+                            } catch (e: Exception) {
+                                Log.e("AirPodsQSService", "Error dismissing dialog: $e")
+                            }
+                        }
+                    )
+                }
+            }
+
+            dialog.setContentView(composeView)
+
+            dialog.setOnShowListener {
+                dialog.window?.let { win ->
+                    win.setLayout(
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        WindowManager.LayoutParams.MATCH_PARENT
+                    )
+                }
+            }
+
+            dialog.setOnDismissListener {
+                Log.d("AirPodsQSService", "Dialog dismissed, cleaning up")
+                viewModelStore.clear()
+                if (activeDialog == dialog) {
+                    activeDialog = null
+                }
+            }
+
+            @Suppress("DEPRECATION")
+            showDialog(dialog)
+            Log.d("AirPodsQSService", "TileService.showDialog called successfully")
+        } catch (e: Exception) {
+            Log.e("AirPodsQSService", "Error showing QS dialog: $e")
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            activeDialog?.dismiss()
+        } catch (e: Exception) {
+            Log.e("AirPodsQSService", "Error dismissing dialog on destroy: $e")
+        }
+        activeDialog = null
     }
 
     private fun cycleAncMode() {
