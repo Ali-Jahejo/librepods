@@ -34,16 +34,16 @@ import android.service.quicksettings.TileService
 import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentDialog
-import androidx.activity.ViewTreeOnBackPressedDispatcherOwner
+import androidx.activity.setViewTreeOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.ViewTreeLifecycleOwner
-import androidx.lifecycle.ViewTreeViewModelStoreOwner
-import androidx.savedstate.ViewTreeSavedStateRegistryOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.bluetooth.AACPManager
 import me.kavishdevar.librepods.bluetooth.BluetoothConnectionManager
@@ -185,13 +185,15 @@ class AirPodsQSService : TileService() {
             }
 
             val decorView = dialog.window?.decorView ?: return
-            ViewTreeLifecycleOwner.set(decorView, dialog)
-            ViewTreeSavedStateRegistryOwner.set(decorView, dialog)
-            ViewTreeOnBackPressedDispatcherOwner.set(decorView, dialog)
+            decorView.setViewTreeLifecycleOwner(dialog)
+            decorView.setViewTreeSavedStateRegistryOwner(dialog)
+            decorView.setViewTreeOnBackPressedDispatcherOwner(dialog)
 
             val viewModelStore = ViewModelStore()
-            val viewModelStoreOwner = ViewModelStoreOwner { viewModelStore }
-            ViewTreeViewModelStoreOwner.set(decorView, viewModelStoreOwner)
+            val viewModelStoreOwner = object : ViewModelStoreOwner {
+                override val viewModelStore: ViewModelStore = viewModelStore
+            }
+            decorView.setViewTreeViewModelStoreOwner(viewModelStoreOwner)
 
             val composeView = ComposeView(this).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromContainer)
