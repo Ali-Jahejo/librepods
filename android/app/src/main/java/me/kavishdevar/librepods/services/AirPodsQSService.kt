@@ -147,36 +147,23 @@ class AirPodsQSService : TileService() {
     override fun onClick() {
         super.onClick()
         Log.d("AirPodsQSService", "onClick - Current state: $isAirPodsConnected, Current mode: $currentAncMode")
-        if (!isAirPodsConnected) {
-            Log.d("AirPodsQSService", "Tile clicked but AirPods not connected.")
-            return
-        }
-
-        val clickBehavior = "cycle" // sharedPreferences.getString("qs_click_behavior", "dialog") ?: "dialog"
-
-        if (clickBehavior == "dialog") {
-            launchDialogActivity()
-        } else {
-            cycleAncMode()
-        }
+        launchDialogActivity()
     }
 
     private fun launchDialogActivity() {
         try {
+            val intent = Intent(this, QuickSettingsDialogActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 val pendingIntent = PendingIntent.getActivity(
                     this,
                     0,
-                    Intent(this, QuickSettingsDialogActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    },
+                    intent,
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                 )
                 startActivityAndCollapse(pendingIntent)
             } else {
-                val intent = Intent(this, QuickSettingsDialogActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                }
                 @Suppress("DEPRECATION")
                 @SuppressLint("StartActivityAndCollapseDeprecated")
                 startActivityAndCollapse(intent)
@@ -205,7 +192,7 @@ class AirPodsQSService : TileService() {
         val tile = qsTile ?: return
         Log.d("AirPodsQSService", "updateTile - Connected: $isAirPodsConnected, Mode: $currentAncMode")
 
-        val deviceName = sharedPreferences.getString("name", "AirPods") ?: "AirPods"
+        val deviceName = sharedPreferences.getString("name", "Airpods") ?: "Airpods"
 
         if (isAirPodsConnected) {
             tile.state = Tile.STATE_ACTIVE
@@ -213,8 +200,8 @@ class AirPodsQSService : TileService() {
             tile.subtitle = deviceName
             tile.icon = Icon.createWithResource(this, getModeIcon(currentAncMode))
         } else {
-            tile.state = Tile.STATE_UNAVAILABLE
-            tile.label = "AirPods"
+            tile.state = Tile.STATE_INACTIVE
+            tile.label = "Airpods"
             tile.subtitle = "Disconnected"
             tile.icon = Icon.createWithResource(this, R.drawable.airpods)
         }

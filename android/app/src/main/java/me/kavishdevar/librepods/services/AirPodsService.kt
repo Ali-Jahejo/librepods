@@ -162,7 +162,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     private var otherDeviceTookOver = false
 
     data class ServiceConfig(
-        var deviceName: String = "AirPods",
+        var deviceName: String = "Airpods",
         var earDetectionEnabled: Boolean = true,
         var conversationAwarenessPauseMusic: Boolean = false,
         var showPhoneBatteryInWidget: Boolean = true,
@@ -670,8 +670,8 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         intent.getParcelableExtra("device") as BluetoothDevice?
                     }
 
-                    if (config.deviceName == "AirPods" && device?.name != null) {
-                        config.deviceName = device?.name ?: "AirPods"
+                    if ((config.deviceName == "Airpods" || config.deviceName == "AirPods") && device?.name != null) {
+                        config.deviceName = device?.name ?: "Airpods"
                         sharedPreferences.edit { putString("name", config.deviceName) }
                     }
 
@@ -1355,7 +1355,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
     private fun initializeConfig() {
         config = ServiceConfig(
-            deviceName = sharedPreferences.getString("name", "AirPods") ?: "AirPods",
+            deviceName = sharedPreferences.getString("name", "Airpods") ?: "Airpods",
             earDetectionEnabled = sharedPreferences.getBoolean("automatic_ear_detection", true),
             conversationAwarenessPauseMusic = sharedPreferences.getBoolean(
                 "conversation_awareness_pause_music", false
@@ -1465,7 +1465,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         if (preferences == null || key == null) return
 
         when (key) {
-            "name" -> config.deviceName = preferences.getString(key, "AirPods") ?: "AirPods"
+            "name" -> config.deviceName = preferences.getString(key, "Airpods") ?: "Airpods"
             "mac_address" -> macAddress = preferences.getString(key, "") ?: ""
             "automatic_ear_detection" -> config.earDetectionEnabled =
                 preferences.getBoolean(key, true)

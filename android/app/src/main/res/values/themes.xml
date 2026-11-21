@@ -17,14 +17,12 @@
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:windowIsFloating">false</item> <!-- Set to false for full width -->
-        <item name="android:backgroundDimEnabled">true</item> <!-- Dim background -->
-        <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item> <!-- Optional: Add animation -->
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <!-- Request blur behind (Android 12+) -->
-        <item name="android:windowBlurBehindEnabled" tools:targetApi="s">true</item>
-        <item name="android:windowBlurBehindRadius" tools:targetApi="s">32dp</item> <!-- Optional: Adjust radius -->
+        <item name="android:windowBlurBehindEnabled" tools:targetApi="s">false</item>
     </style>
 
   <style name="Theme.LibrePods.AppWidgetContainerParent" parent="@android:style/Theme.DeviceDefault">
